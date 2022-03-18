@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    gosu (1.4.1)
+    minigl (2.3.8)
+      gosu (>= 0.11, < 2.0)
+
+PLATFORMS
+  x86_64-linux
+
+DEPENDENCIES
+  minigl (~> 2.3.8)
+
+BUNDLED WITH
+   2.2.15

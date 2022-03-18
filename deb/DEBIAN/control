@@ -1,0 +1,11 @@
+Package: sokoadventure
+Priority: optional
+Version: 1.2.0
+Architecture: all
+Maintainer: Aleva Games <contato@aleva.com.br>
+Installed-Size: 13632
+Depends: alevagl (>= 1.6.5)
+Homepage: http://games.aleva.com.br
+Section: games
+Description: SokoAdventure
+ SokoAdventure is a puzzle game based on Sokoban. The main goal is to put all boxes in their respective places.
