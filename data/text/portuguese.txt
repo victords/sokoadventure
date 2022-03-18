@@ -1,0 +1,7 @@
+lang_name		Português
+presents		Apresenta...
+play			Jogar
+instructions	Instruções
+high_scores		Recordes
+options			Opções
+exit			Sair

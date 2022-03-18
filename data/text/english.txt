@@ -1,0 +1,7 @@
+lang_name		English
+presents		Presents...
+play			Play
+instructions	Instructions
+high_scores		High Scores
+options			Options
+exit			Exit
