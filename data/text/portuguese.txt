@@ -5,3 +5,4 @@ instructions	Instruções
 high_scores		Recordes
 options			Opções
 exit			Sair
+back			Voltar

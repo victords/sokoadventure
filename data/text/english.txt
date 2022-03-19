@@ -5,3 +5,4 @@ instructions	Instructions
 high_scores		High Scores
 options			Options
 exit			Exit
+back			Back

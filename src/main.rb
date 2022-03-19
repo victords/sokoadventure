@@ -1,5 +1,5 @@
 require 'minigl'
-require_relative 'menu'
+require_relative 'game'
 
 class Window < MiniGL::GameWindow
   include MiniGL
@@ -10,8 +10,6 @@ class Window < MiniGL::GameWindow
 
     Res.prefix = File.expand_path(__FILE__).split('/')[..-3].join('/') + '/data'
     Game.initialize
-
-    @controller = Menu.new
   end
 
   def needs_cursor?
@@ -21,11 +19,11 @@ class Window < MiniGL::GameWindow
   def update
     KB.update
     Mouse.update
-    @controller.update
+    Game.update
   end
 
   def draw
-    @controller.draw
+    Game.draw
   end
 end
 

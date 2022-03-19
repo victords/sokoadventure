@@ -1,10 +1,11 @@
 require 'minigl'
+require_relative 'menu'
 
 class Game
   class << self
     include MiniGL
 
-    attr_reader :font, :big_font
+    attr_reader :font, :big_font, :last_level
 
     def initialize
       @texts = {}
@@ -20,13 +21,28 @@ class Game
       end
 
       @language = @texts.keys[0]
+      @last_level = 24
 
       @font = Res.font(:font, 20)
       @big_font = Res.font(:font, 32)
+
+      @controller = Menu.new
     end
 
     def text(key)
       @texts[@language][key] || '<!>'
+    end
+
+    def start(level)
+      puts "starting level #{level}"
+    end
+
+    def update
+      @controller.update
+    end
+
+    def draw
+      @controller.draw
     end
   end
 end
