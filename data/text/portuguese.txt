@@ -6,3 +6,4 @@ high_scores		Recordes
 options			Opções
 exit			Sair
 back			Voltar
+help_text		Empurre objetos para suas respectivas posições.\Um nível é finalizado quando todas as posições estão ocupadas.\Evite inimigos.\Objetos mudam de aparência a cada novo cenário.

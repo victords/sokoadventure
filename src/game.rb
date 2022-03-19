@@ -20,7 +20,7 @@ class Game
         end
       end
 
-      @language = @texts.keys[0]
+      @language = :portuguese
       @last_level = 24
 
       @font = Res.font(:font, 20)
@@ -30,7 +30,7 @@ class Game
     end
 
     def text(key)
-      @texts[@language][key] || '<!>'
+      (@texts[@language][key] || '<!>').gsub('\\', "\n")
     end
 
     def start(level)
@@ -39,6 +39,11 @@ class Game
 
     def update
       @controller.update
+
+      # TODO remove later
+      @language = :english if KB.key_pressed?(Gosu::KB_E)
+      @language = :portuguese if KB.key_pressed?(Gosu::KB_P)
+      @language = :spanish if KB.key_pressed?(Gosu::KB_S)
     end
 
     def draw
