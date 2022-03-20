@@ -2,6 +2,7 @@ require 'minigl'
 require 'rbconfig'
 require 'fileutils'
 require_relative 'menu'
+require_relative 'level'
 
 class Game
   class << self
@@ -80,7 +81,7 @@ class Game
     end
 
     def start(level)
-      puts "starting level #{level}"
+      @controller = Level.new(level)
     end
 
     def save_scores

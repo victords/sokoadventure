@@ -57,23 +57,23 @@ class Menu
         LevelButton.new(x: 55 + (i % 10) * 70, y: 240 + (i / 10) * 60, number: i + 1)
       end,
       options: [
-        MiniGL::Button.new(500, 280, nil, nil, :change) do
+        Button.new(500, 280, nil, nil, :change) do
           Game.toggle_full_screen
         end,
-        MiniGL::Button.new(500, 320, nil, nil, :change) do
+        Button.new(500, 320, nil, nil, :change) do
           Game.next_language
           update_button_texts
         end,
-        MiniGL::Button.new(500, 367, nil, nil, :less) do
+        Button.new(500, 367, nil, nil, :less) do
           Game.change_music_volume(-1)
         end,
-        MiniGL::Button.new(522, 367, nil, nil, :more) do
+        Button.new(522, 367, nil, nil, :more) do
           Game.change_music_volume(1)
         end,
-        MiniGL::Button.new(500, 407, nil, nil, :less) do
+        Button.new(500, 407, nil, nil, :less) do
           Game.change_sound_volume(-1)
         end,
-        MiniGL::Button.new(522, 407, nil, nil, :more) do
+        Button.new(522, 407, nil, nil, :more) do
           Game.change_sound_volume(1)
         end,
         MainButton.new(y: 540, text_id: :back, icon: :back) do

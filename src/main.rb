@@ -1,12 +1,13 @@
 require 'minigl'
 require_relative 'game'
+require_relative 'constants'
 
 class Window < MiniGL::GameWindow
   include MiniGL
 
   def initialize
     Game.load
-    super(800, 600, Game.full_screen)
+    super(SCREEN_WIDTH, SCREEN_HEIGHT, Game.full_screen)
     self.caption = 'SokoAdventure'
 
     Res.prefix = File.expand_path(__FILE__).split('/')[..-3].join('/') + '/data'
