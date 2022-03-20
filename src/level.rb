@@ -1,7 +1,7 @@
 require_relative 'constants'
 require_relative 'man'
 require_relative 'ball'
-require_relative 'key_door'
+require_relative 'door'
 require_relative 'box'
 
 include MiniGL
@@ -49,8 +49,8 @@ class Level
           case c
           when 'o'
             @objects[i][j] = Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name)
-          when /r|b|y|g/i
-            @objects[i][j] = KeyDoor.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c)
+          when /R|B|Y|G/
+            @objects[i][j] = Door.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c.downcase)
           when 'c'
             @objects[i][j] = Box.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE)
           end
@@ -81,9 +81,12 @@ class Level
       border.subimage(44, 44, 12, 12), # bottom right
     ]
 
-    @key_imgs = [
-      Res.img(:kr), Res.img(:kb), Res.img(:ky), Res.img(:kg)
-    ]
+    @key_imgs = {
+      r: Res.img(:kr),
+      b: Res.img(:kb),
+      y: Res.img(:ky),
+      g: Res.img(:kg),
+    }
 
     @text_helper = TextHelper.new(Game.font)
     @text_helper_big = TextHelper.new(Game.big_font)
@@ -95,7 +98,7 @@ class Level
     n_i = i + i_var
     n_j = j + j_var
     return if n_i < 0 || n_i >= @width || n_j < 0 || n_j >= @height
-    return if @tiles[n_i][n_j] == '#' || @tiles[i][j] == 'h'
+    return if @tiles[n_i][n_j] == '#' || @tiles[n_i][n_j] == 'h'
 
     obj = @objects[n_i][n_j]
     nn_i = n_i + i_var
@@ -103,7 +106,7 @@ class Level
     case obj
     when Ball
       return if obstacle_at?(nn_i, nn_j)
-      return if @tiles[i][j] == 'h'
+      return if @tiles[nn_i][nn_j] == 'h'
 
       will_set = @tiles[nn_i][nn_j] == 'x'
       if will_set && !obj.set
@@ -115,14 +118,10 @@ class Level
       @objects[n_i][n_j] = nil
       @objects[nn_i][nn_j] = obj
       obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE, will_set)
-    when KeyDoor
-      color = obj.color.to_sym
-      if obj.type == :key
+    when Door
+      if @key_count[obj.color] > 0
         @objects[n_i][n_j] = nil
-        @key_count[color] += 1
-      elsif @key_count[color] > 0
-        @objects[n_i][n_j] = nil
-        @key_count[color] -= 1
+        @key_count[obj.color] -= 1
       else
         return
       end
@@ -138,6 +137,11 @@ class Level
       end
     end
 
+    if /r|b|y|g/ =~ @tiles[n_i][n_j]
+      @key_count[@tiles[n_i][n_j].to_sym] += 1
+      @tiles[n_i][n_j] = '.'
+    end
+
     @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
   end
 
@@ -146,7 +150,7 @@ class Level
     return true if @tiles[i][j] == '#'
 
     obj = @objects[i][j]
-    obj.is_a?(Ball) || obj.is_a?(Box) || obj.is_a?(KeyDoor) && obj.type == :door
+    obj.is_a?(Ball) || obj.is_a?(Box) || obj.is_a?(Door)
   end
 
   def update
@@ -194,14 +198,16 @@ class Level
         end
 
         @tile_floor.draw(x, y, 0)
+        tile = @tiles[i][j]
         overlay =
-          case @tiles[i][j]
+          case tile
           when '#' then @tile_wall
           when 'x' then @tile_aim
+          when /r|b|y|g/ then @key_imgs[tile.to_sym]
           when /h/i then @holes[0]
           end
         overlay&.draw(x, y, 0)
-        @set_box.draw(x, y, 0) if @tiles[i][j] == 'H'
+        @set_box.draw(x, y, 0) if tile == 'H'
       end
     end
 
@@ -214,13 +220,13 @@ class Level
     @man.draw
 
     @text_helper_big.write_line("#{Game.text(:level)} #{@number}", 10, 10, :left, 0xffffff, 255, :shadow)
-    @key_imgs[0].draw(10, 50, 0, 0.5, 0.5)
+    @key_imgs[:r].draw(10, 50, 0, 0.5, 0.5)
     @text_helper.write_line(@key_count[:r], 36, 50, :left, 0xff0000, 255, :shadow)
-    @key_imgs[1].draw(10, 70, 0, 0.5, 0.5)
+    @key_imgs[:b].draw(10, 70, 0, 0.5, 0.5)
     @text_helper.write_line(@key_count[:b], 36, 70, :left, 0x0000ff, 255, :shadow)
-    @key_imgs[2].draw(10, 90, 0, 0.5, 0.5)
+    @key_imgs[:y].draw(10, 90, 0, 0.5, 0.5)
     @text_helper.write_line(@key_count[:y], 36, 90, :left, 0xcccc00, 255, :shadow)
-    @key_imgs[3].draw(10, 110, 0, 0.5, 0.5)
+    @key_imgs[:g].draw(10, 110, 0, 0.5, 0.5)
     @text_helper.write_line(@key_count[:g], 36, 110, :left, 0x008000, 255, :shadow)
   end
 end
