@@ -3,9 +3,10 @@ require_relative 'movable_object'
 class Ball < MovableObject
   attr_reader :set
 
-  def initialize(x, y, area)
+  def initialize(x, y, area, set)
     super(x, y, "#{area}_ballAim", 3, 1)
-    @unset = Res.img("#{area}_ball")
+    @set = set
+    @unset_img = Res.img("#{area}_ball")
   end
 
   def update
@@ -23,7 +24,7 @@ class Ball < MovableObject
     if @set
       super
     else
-      @unset.draw(@x, @y, 0)
+      @unset_img.draw(@x, @y, 0)
     end
   end
 end

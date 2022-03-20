@@ -8,6 +8,7 @@ class Window < MiniGL::GameWindow
   def initialize
     Game.load
     super(SCREEN_WIDTH, SCREEN_HEIGHT, Game.full_screen)
+    G.kb_held_delay = 5
     self.caption = 'SokoAdventure'
 
     Res.prefix = File.expand_path(__FILE__).split('/')[..-3].join('/') + '/data'

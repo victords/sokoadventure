@@ -47,12 +47,16 @@ class Level
 
         l.each_char.with_index do |c, i|
           case c
-          when 'o'
-            @objects[i][j] = Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name)
+          when /o|\+/
+            @objects[i][j] = Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name, c == '+')
           when /R|B|Y|G/
             @objects[i][j] = Door.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c.downcase)
           when 'c'
             @objects[i][j] = Box.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE)
+          end
+          if c == '+'
+            @set_count += 1
+            c = 'x'
           end
           @aim_count += 1 if c == 'x'
           @tiles[i][j] = c
@@ -68,6 +72,13 @@ class Level
     @tile_aim = Res.img("#{area_name}_aim", false, true)
     @holes = Res.imgs(:holeset, 4, 4, false, '.png', nil, true)
     @set_box = Res.img(:box2)
+    @lock = Res.img(:lock)
+    @key_imgs = {
+      r: Res.img(:kr),
+      b: Res.img(:kb),
+      y: Res.img(:ky),
+      g: Res.img(:kg),
+    }
 
     border = Res.img("#{area_name}_border")
     @borders = [
@@ -80,13 +91,6 @@ class Level
       border.subimage(12, 44, 32, 12), # bottom
       border.subimage(44, 44, 12, 12), # bottom right
     ]
-
-    @key_imgs = {
-      r: Res.img(:kr),
-      b: Res.img(:kb),
-      y: Res.img(:ky),
-      g: Res.img(:kg),
-    }
 
     @text_helper = TextHelper.new(Game.font)
     @text_helper_big = TextHelper.new(Game.big_font)
@@ -106,7 +110,7 @@ class Level
     case obj
     when Ball
       return if obstacle_at?(nn_i, nn_j)
-      return if @tiles[nn_i][nn_j] == 'h'
+      return if @tiles[n_i][n_j] == 'l' || @tiles[nn_i][nn_j] == 'h'
 
       will_set = @tiles[nn_i][nn_j] == 'x'
       if will_set && !obj.set
@@ -127,6 +131,7 @@ class Level
       end
     when Box
       return if obstacle_at?(nn_i, nn_j)
+      return if @tiles[n_i][n_j] == 'l'
 
       @objects[n_i][n_j] = nil
       if @tiles[nn_i][nn_j] == 'h'
@@ -154,6 +159,8 @@ class Level
   end
 
   def update
+    prev_count = @set_count
+
     i = (@man.x - @margin_x) / TILE_SIZE
     j = (@man.y - @margin_y) / TILE_SIZE
     if KB.key_pressed?(Gosu::KB_UP) || KB.key_held?(Gosu::KB_UP)
@@ -164,6 +171,10 @@ class Level
       check_move(i, j, 0, 1)
     elsif KB.key_pressed?(Gosu::KB_LEFT) || KB.key_held?(Gosu::KB_LEFT)
       check_move(i, j, -1, 0)
+    end
+
+    if prev_count < @aim_count && @set_count == @aim_count
+      puts 'won'
     end
 
     @man.update
@@ -205,6 +216,7 @@ class Level
           when 'x' then @tile_aim
           when /r|b|y|g/ then @key_imgs[tile.to_sym]
           when /h/i then @holes[0]
+          when 'l' then @lock
           end
         overlay&.draw(x, y, 0)
         @set_box.draw(x, y, 0) if tile == 'H'
