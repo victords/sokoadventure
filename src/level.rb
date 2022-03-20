@@ -13,6 +13,8 @@ class Level
       when 4 then :cave
       end
 
+    @aim_count = 0
+    @set_count = 0
     File.open("#{Res.prefix}levels/lvl#{number}") do |f|
       lines = f.read.split("\n")
       @start_col = lines[0].to_i
@@ -35,6 +37,7 @@ class Level
           if c == 'o'
             @objects[i][j] = Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name)
           end
+          @aim_count += 1 if c == 'x'
           @tiles[i][j] = c == 'o' ? '.' : c
         end
       end
@@ -44,8 +47,8 @@ class Level
 
     @bg = Res.img("#{area_name}_back", false, true)
     @tile_floor = Res.img("#{area_name}_ground", false, true)
-    @tile_wall = Res.img("#{area_name}_block")
-    @tile_aim = Res.img("#{area_name}_aim")
+    @tile_wall = Res.img("#{area_name}_block", false, true)
+    @tile_aim = Res.img("#{area_name}_aim", false, true)
 
     border = Res.img("#{area_name}_border")
     @borders = [
@@ -62,8 +65,55 @@ class Level
     Game.play_song(area_name)
   end
 
+  def check_move(i, j, i_var, j_var)
+    n_i = i + i_var
+    n_j = j + j_var
+    return if n_i < 0 || n_i >= @width || n_j < 0 || n_j >= @height
+    return if @tiles[n_i][n_j] == '#'
+
+    obj = @objects[n_i][n_j]
+    nn_i = n_i + i_var
+    nn_j = n_j + j_var
+    if obj.is_a?(Ball)
+      return if nn_i < 0 || nn_i >= @width || nn_j < 0 || nn_j >= @height
+      return if @tiles[nn_i][nn_j] == '#'
+      next_obj = @objects[nn_i][nn_j]
+      return if next_obj.is_a?(Ball) # || next_obj.is_a?(Box) || next_obj.is_a?(Door)
+
+      will_set = @tiles[nn_i][nn_j] == 'x'
+      if will_set && !obj.set
+        @set_count += 1
+      elsif !will_set && obj.set
+        @set_count -= 1
+      end
+
+      @objects[n_i][n_j] = nil
+      @objects[nn_i][nn_j] = obj
+      obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE, will_set)
+    end
+
+    @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+  end
+
   def update
+    i = (@man.x - @margin_x) / TILE_SIZE
+    j = (@man.y - @margin_y) / TILE_SIZE
+    if KB.key_pressed?(Gosu::KB_UP) || KB.key_held?(Gosu::KB_UP)
+      check_move(i, j, 0, -1)
+    elsif KB.key_pressed?(Gosu::KB_RIGHT) || KB.key_held?(Gosu::KB_RIGHT)
+      check_move(i, j, 1, 0)
+    elsif KB.key_pressed?(Gosu::KB_DOWN) || KB.key_held?(Gosu::KB_DOWN)
+      check_move(i, j, 0, 1)
+    elsif KB.key_pressed?(Gosu::KB_LEFT) || KB.key_held?(Gosu::KB_LEFT)
+      check_move(i, j, -1, 0)
+    end
+
     @man.update
+    @objects.each do |col|
+      col.each do |obj|
+        obj&.update
+      end
+    end
   end
 
   def draw

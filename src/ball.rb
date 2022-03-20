@@ -3,14 +3,28 @@ require 'minigl'
 include MiniGL
 
 class Ball < Sprite
+  attr_reader :set
+
   def initialize(x, y, area)
     super(x, y, "#{area}_ballAim", 3, 1)
     @unset = Res.img("#{area}_ball")
   end
 
-  def draw(map = nil, scale_x = nil, scale_y = nil, alpha = nil, color = nil, angle = nil, flip = nil, z_index = nil, round = nil)
+  def update
+    return unless @set
+
+    animate([0, 1, 2, 1], 12)
+  end
+
+  def move(x_var, y_var, set)
+    @x += x_var
+    @y += y_var
+    @set = set
+  end
+
+  def draw
     if @set
-      super
+      super()
     else
       @unset.draw(@x, @y, 0)
     end
