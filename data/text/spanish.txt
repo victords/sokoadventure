@@ -14,3 +14,4 @@ full_screen		Pantalla completa
 window			Ventana
 music_volume	Volúmen de música
 sound_volume	Volúmen de sonidos
+level			Nivel

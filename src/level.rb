@@ -1,9 +1,14 @@
 require_relative 'constants'
-require_relative 'ball'
 require_relative 'man'
+require_relative 'ball'
+require_relative 'key_door'
+
+include MiniGL
 
 class Level
   def initialize(number)
+    @number = number
+
     area_name =
       case (number - 1) / 10
       when 0 then :room
@@ -15,6 +20,12 @@ class Level
 
     @aim_count = 0
     @set_count = 0
+    @key_count = {
+      r: 0,
+      b: 0,
+      y: 0,
+      g: 0
+    }
     File.open("#{Res.prefix}levels/lvl#{number}") do |f|
       lines = f.read.split("\n")
       @start_col = lines[0].to_i
@@ -34,8 +45,11 @@ class Level
         break if l.empty?
 
         l.each_char.with_index do |c, i|
-          if c == 'o'
+          case c
+          when 'o'
             @objects[i][j] = Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name)
+          when /r|b|y|g/i
+            @objects[i][j] = KeyDoor.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c)
           end
           @aim_count += 1 if c == 'x'
           @tiles[i][j] = c == 'o' ? '.' : c
@@ -62,6 +76,13 @@ class Level
       border.subimage(44, 44, 12, 12), # bottom right
     ]
 
+    @key_imgs = [
+      Res.img(:kr), Res.img(:kb), Res.img(:ky), Res.img(:kg)
+    ]
+
+    @text_helper = TextHelper.new(Game.font)
+    @text_helper_big = TextHelper.new(Game.big_font)
+
     Game.play_song(area_name)
   end
 
@@ -74,11 +95,13 @@ class Level
     obj = @objects[n_i][n_j]
     nn_i = n_i + i_var
     nn_j = n_j + j_var
-    if obj.is_a?(Ball)
+    case obj
+    when Ball
       return if nn_i < 0 || nn_i >= @width || nn_j < 0 || nn_j >= @height
       return if @tiles[nn_i][nn_j] == '#'
+
       next_obj = @objects[nn_i][nn_j]
-      return if next_obj.is_a?(Ball) # || next_obj.is_a?(Box) || next_obj.is_a?(Door)
+      return if next_obj.is_a?(Ball) || next_obj.is_a?(KeyDoor) && next_obj.type == :door
 
       will_set = @tiles[nn_i][nn_j] == 'x'
       if will_set && !obj.set
@@ -90,6 +113,17 @@ class Level
       @objects[n_i][n_j] = nil
       @objects[nn_i][nn_j] = obj
       obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE, will_set)
+    when KeyDoor
+      color = obj.color.to_sym
+      if obj.type == :key
+        @objects[n_i][n_j] = nil
+        @key_count[color] += 1
+      elsif @key_count[color] > 0
+        @objects[n_i][n_j] = nil
+        @key_count[color] -= 1
+      else
+        return
+      end
     end
 
     @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
@@ -111,7 +145,7 @@ class Level
     @man.update
     @objects.each do |col|
       col.each do |obj|
-        obj&.update
+        obj.update if obj.respond_to?(:update)
       end
     end
   end
@@ -156,5 +190,15 @@ class Level
     end
 
     @man.draw
+
+    @text_helper_big.write_line("#{Game.text(:level)} #{@number}", 10, 10, :left, 0xffffff, 255, :shadow)
+    @key_imgs[0].draw(10, 50, 0, 0.5, 0.5)
+    @text_helper.write_line(@key_count[:r], 36, 50, :left, 0xff0000, 255, :shadow)
+    @key_imgs[1].draw(10, 70, 0, 0.5, 0.5)
+    @text_helper.write_line(@key_count[:b], 36, 70, :left, 0x0000ff, 255, :shadow)
+    @key_imgs[2].draw(10, 90, 0, 0.5, 0.5)
+    @text_helper.write_line(@key_count[:y], 36, 90, :left, 0xcccc00, 255, :shadow)
+    @key_imgs[3].draw(10, 110, 0, 0.5, 0.5)
+    @text_helper.write_line(@key_count[:g], 36, 110, :left, 0x008000, 255, :shadow)
   end
 end
