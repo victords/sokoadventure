@@ -1,15 +1,8 @@
-require 'minigl'
+require_relative 'movable_object'
 
-include MiniGL
-
-class Man < Sprite
+class Man < MovableObject
   def initialize(x, y)
     super(x, y, :man, 3, 4)
-  end
-
-  def move(x_var, y_var)
-    @x += x_var
-    @y += y_var
   end
 
   def update

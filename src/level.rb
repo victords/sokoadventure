@@ -2,6 +2,7 @@ require_relative 'constants'
 require_relative 'man'
 require_relative 'ball'
 require_relative 'key_door'
+require_relative 'box'
 
 include MiniGL
 
@@ -50,9 +51,11 @@ class Level
             @objects[i][j] = Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name)
           when /r|b|y|g/i
             @objects[i][j] = KeyDoor.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c)
+          when 'c'
+            @objects[i][j] = Box.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE)
           end
           @aim_count += 1 if c == 'x'
-          @tiles[i][j] = c == 'o' ? '.' : c
+          @tiles[i][j] = c
         end
       end
     end
@@ -63,6 +66,8 @@ class Level
     @tile_floor = Res.img("#{area_name}_ground", false, true)
     @tile_wall = Res.img("#{area_name}_block", false, true)
     @tile_aim = Res.img("#{area_name}_aim", false, true)
+    @holes = Res.imgs(:holeset, 4, 4, false, '.png', nil, true)
+    @set_box = Res.img(:box2)
 
     border = Res.img("#{area_name}_border")
     @borders = [
@@ -90,18 +95,15 @@ class Level
     n_i = i + i_var
     n_j = j + j_var
     return if n_i < 0 || n_i >= @width || n_j < 0 || n_j >= @height
-    return if @tiles[n_i][n_j] == '#'
+    return if @tiles[n_i][n_j] == '#' || @tiles[i][j] == 'h'
 
     obj = @objects[n_i][n_j]
     nn_i = n_i + i_var
     nn_j = n_j + j_var
     case obj
     when Ball
-      return if nn_i < 0 || nn_i >= @width || nn_j < 0 || nn_j >= @height
-      return if @tiles[nn_i][nn_j] == '#'
-
-      next_obj = @objects[nn_i][nn_j]
-      return if next_obj.is_a?(Ball) || next_obj.is_a?(KeyDoor) && next_obj.type == :door
+      return if obstacle_at?(nn_i, nn_j)
+      return if @tiles[i][j] == 'h'
 
       will_set = @tiles[nn_i][nn_j] == 'x'
       if will_set && !obj.set
@@ -124,9 +126,27 @@ class Level
       else
         return
       end
+    when Box
+      return if obstacle_at?(nn_i, nn_j)
+
+      @objects[n_i][n_j] = nil
+      if @tiles[nn_i][nn_j] == 'h'
+        @tiles[nn_i][nn_j] = 'H'
+      else
+        @objects[nn_i][nn_j] = obj
+        obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+      end
     end
 
     @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+  end
+
+  def obstacle_at?(i, j)
+    return true if i < 0 || i >= @width || j < 0 || j >= @height
+    return true if @tiles[i][j] == '#'
+
+    obj = @objects[i][j]
+    obj.is_a?(Ball) || obj.is_a?(Box) || obj.is_a?(KeyDoor) && obj.type == :door
   end
 
   def update
@@ -178,8 +198,10 @@ class Level
           case @tiles[i][j]
           when '#' then @tile_wall
           when 'x' then @tile_aim
+          when /h/i then @holes[0]
           end
         overlay&.draw(x, y, 0)
+        @set_box.draw(x, y, 0) if @tiles[i][j] == 'H'
       end
     end
 

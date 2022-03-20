@@ -1,8 +1,6 @@
-require 'minigl'
+require_relative 'movable_object'
 
-include MiniGL
-
-class Ball < Sprite
+class Ball < MovableObject
   attr_reader :set
 
   def initialize(x, y, area)
@@ -17,14 +15,13 @@ class Ball < Sprite
   end
 
   def move(x_var, y_var, set)
-    @x += x_var
-    @y += y_var
+    super(x_var, y_var)
     @set = set
   end
 
   def draw
     if @set
-      super()
+      super
     else
       @unset.draw(@x, @y, 0)
     end
