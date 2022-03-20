@@ -10,3 +10,7 @@ help_text		Push objects to their respective places.\You finish a level when all 
 from_level		From level...
 to_level		To level...
 in_tries		In ... tries
+full_screen		Full screen
+window			Window
+music_volume	Music volume
+sound_volume	Sound volume

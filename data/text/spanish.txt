@@ -10,3 +10,7 @@ help_text		Empuje los objetos a sus respectivos lugares.\Terminas un nivel cuand
 from_level		Del nivel...
 to_level		Al nivel...
 in_tries		En ... intentos
+full_screen		Pantalla completa
+window			Ventana
+music_volume	Volúmen de música
+sound_volume	Volúmen de sonidos
