@@ -7,3 +7,6 @@ options			Opciones
 exit			Salir
 back			Volver
 help_text		Empuje los objetos a sus respectivos lugares.\Terminas un nivel cuando todos los lugares están ocupados.\Evita a los enemigos.\Los objetos cambian su apariencia en cada nuevo escenario.
+from_level		Del nivel...
+to_level		Al nivel...
+in_tries		En ... intentos

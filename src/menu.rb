@@ -77,6 +77,16 @@ class Menu
 
     if @state == :instructions
       @text_helper.write_breaking(Game.text(:help_text), 255, 300, 290)
+    elsif @state == :high_scores
+      Game.font.draw(Game.text(:from_level), 260, 230, 0, 1, 1, 0xff000000)
+      Game.font.draw(Game.text(:to_level), 360, 230, 0, 1, 1, 0xff000000)
+      Game.font.draw(Game.text(:in_tries), 460, 230, 0, 1, 1, 0xff000000)
+      (0..4).each do |i|
+        (0..2).each do |j|
+          text = Game.scores[i] ? Game.scores[i][j].to_s : '-'
+          Game.font.draw_text(text, 260 + j * 100, 275 + i * 40, 0, 1, 1, 0xff000000)
+        end
+      end
     end
 
     @btns[@state].each(&:draw) if @btns[@state]
