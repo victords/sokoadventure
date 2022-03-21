@@ -3,6 +3,7 @@ require_relative 'man'
 require_relative 'ball'
 require_relative 'door'
 require_relative 'box'
+require_relative 'enemy'
 
 include MiniGL
 
@@ -40,7 +41,7 @@ class Level
         Array.new(@height)
       }
       @objects = Array.new(@width) {
-        Array.new(@height)
+        Array.new(@height) { [] }
       }
       lines[2..-1].each_with_index do |l, j|
         break if l.empty?
@@ -48,11 +49,13 @@ class Level
         l.each_char.with_index do |c, i|
           case c
           when /o|\+/
-            @objects[i][j] = Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name, c == '+')
+            @objects[i][j] << Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name, c == '+')
           when /R|B|Y|G/
-            @objects[i][j] = Door.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c.downcase)
+            @objects[i][j] << Door.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c.downcase)
           when 'c'
-            @objects[i][j] = Box.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE)
+            @objects[i][j] << Box.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE)
+          when 'e'
+            @objects[i][j] << Enemy.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name)
           end
           if c == '+'
             @set_count += 1
@@ -98,49 +101,53 @@ class Level
     Game.play_song(area_name)
   end
 
-  def check_move(i, j, i_var, j_var)
+  def player_move(i, j, i_var, j_var)
     n_i = i + i_var
     n_j = j + j_var
     return if n_i < 0 || n_i >= @width || n_j < 0 || n_j >= @height
     return if @tiles[n_i][n_j] == '#' || @tiles[n_i][n_j] == 'h'
 
-    obj = @objects[n_i][n_j]
+    objs = @objects[n_i][n_j]
     nn_i = n_i + i_var
     nn_j = n_j + j_var
-    case obj
-    when Ball
-      return if obstacle_at?(nn_i, nn_j)
-      return if @tiles[n_i][n_j] == 'l' || @tiles[nn_i][nn_j] == 'h'
+    blocked = false
+    objs.each do |obj|
+      case obj
+      when Ball
+        break blocked = true if obstacle_at?(nn_i, nn_j)
+        break blocked = true if @tiles[n_i][n_j] == 'l' || @tiles[nn_i][nn_j] == 'h'
 
-      will_set = @tiles[nn_i][nn_j] == 'x'
-      if will_set && !obj.set
-        @set_count += 1
-      elsif !will_set && obj.set
-        @set_count -= 1
-      end
+        will_set = @tiles[nn_i][nn_j] == 'x'
+        if will_set && !obj.set
+          @set_count += 1
+        elsif !will_set && obj.set
+          @set_count -= 1
+        end
 
-      @objects[n_i][n_j] = nil
-      @objects[nn_i][nn_j] = obj
-      obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE, will_set)
-    when Door
-      if @key_count[obj.color] > 0
-        @objects[n_i][n_j] = nil
-        @key_count[obj.color] -= 1
-      else
-        return
-      end
-    when Box
-      return if obstacle_at?(nn_i, nn_j)
-      return if @tiles[n_i][n_j] == 'l'
+        @objects[n_i][n_j].delete(obj)
+        @objects[nn_i][nn_j] << obj
+        obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE, will_set)
+      when Door
+        if @key_count[obj.color] > 0
+          @objects[n_i][n_j].delete(obj)
+          @key_count[obj.color] -= 1
+        else
+          break blocked = true
+        end
+      when Box
+        break blocked = true if obstacle_at?(nn_i, nn_j, false)
+        break blocked = true if @tiles[n_i][n_j] == 'l'
 
-      @objects[n_i][n_j] = nil
-      if @tiles[nn_i][nn_j] == 'h'
-        @tiles[nn_i][nn_j] = 'H'
-      else
-        @objects[nn_i][nn_j] = obj
-        obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+        @objects[n_i][n_j].delete(obj)
+        if @tiles[nn_i][nn_j] == 'h'
+          @tiles[nn_i][nn_j] = 'H'
+        else
+          @objects[nn_i][nn_j] << obj
+          obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+        end
       end
     end
+    return if blocked
 
     if /r|b|y|g/ =~ @tiles[n_i][n_j]
       @key_count[@tiles[n_i][n_j].to_sym] += 1
@@ -150,12 +157,47 @@ class Level
     @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
   end
 
-  def obstacle_at?(i, j)
+  def enemy_move(enemy)
+    tries = 0
+    i = (enemy.x - @margin_x) / TILE_SIZE
+    j = (enemy.y - @margin_y) / TILE_SIZE
+    while tries < 4
+      i_var, j_var =
+        case enemy.dir
+        when 0 then [0, -1]
+        when 1 then [1, 0]
+        when 2 then [0, 1]
+        else        [-1, 0]
+        end
+      if obstacle_at?(i + i_var, j + j_var)
+        tries += 1
+        enemy.dir = (enemy.dir + tries) % 4
+      else
+        @objects[i][j].delete(enemy)
+        @objects[i + i_var][j + j_var] << enemy
+        enemy.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+        break
+      end
+    end
+  end
+
+  def check_man(enemy)
+    i = (enemy.x - @margin_x) / TILE_SIZE
+    j = (enemy.y - @margin_y) / TILE_SIZE
+    m_i = (@man.x - @margin_x) / TILE_SIZE
+    m_j = (@man.y - @margin_y) / TILE_SIZE
+    puts 'dead' if i == m_i && j == m_j
+  end
+
+  def obstacle_at?(i, j, check_hole = true)
     return true if i < 0 || i >= @width || j < 0 || j >= @height
     return true if @tiles[i][j] == '#'
+    return true if check_hole && @tiles[i][j] == 'h'
 
-    obj = @objects[i][j]
-    obj.is_a?(Ball) || obj.is_a?(Box) || obj.is_a?(Door)
+    objs = @objects[i][j]
+    objs.any? do |obj|
+      obj.is_a?(Ball) || obj.is_a?(Box) || obj.is_a?(Door)
+    end
   end
 
   def update
@@ -164,25 +206,23 @@ class Level
     i = (@man.x - @margin_x) / TILE_SIZE
     j = (@man.y - @margin_y) / TILE_SIZE
     if KB.key_pressed?(Gosu::KB_UP) || KB.key_held?(Gosu::KB_UP)
-      check_move(i, j, 0, -1)
+      player_move(i, j, 0, -1)
     elsif KB.key_pressed?(Gosu::KB_RIGHT) || KB.key_held?(Gosu::KB_RIGHT)
-      check_move(i, j, 1, 0)
+      player_move(i, j, 1, 0)
     elsif KB.key_pressed?(Gosu::KB_DOWN) || KB.key_held?(Gosu::KB_DOWN)
-      check_move(i, j, 0, 1)
+      player_move(i, j, 0, 1)
     elsif KB.key_pressed?(Gosu::KB_LEFT) || KB.key_held?(Gosu::KB_LEFT)
-      check_move(i, j, -1, 0)
+      player_move(i, j, -1, 0)
     end
 
     if prev_count < @aim_count && @set_count == @aim_count
       puts 'won'
     end
 
-    @man.update
-    @objects.each do |col|
-      col.each do |obj|
-        obj.update if obj.respond_to?(:update)
-      end
+    @objects.flatten.each do |obj|
+      obj.update(self) if obj.respond_to?(:update)
     end
+    @man.update
   end
 
   def draw
@@ -223,12 +263,7 @@ class Level
       end
     end
 
-    @objects.each do |col|
-      col.each do |obj|
-        obj&.draw
-      end
-    end
-
+    @objects.flatten.each(&:draw)
     @man.draw
 
     @text_helper_big.write_line("#{Game.text(:level)} #{@number}", 10, 10, :left, 0xffffff, 255, :shadow)

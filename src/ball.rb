@@ -9,7 +9,7 @@ class Ball < MovableObject
     @unset_img = Res.img("#{area}_ball")
   end
 
-  def update
+  def update(_)
     return unless @set
 
     animate([0, 1, 2, 1], 12)
