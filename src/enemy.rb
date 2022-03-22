@@ -5,7 +5,7 @@ include MiniGL
 class Enemy < MovableObject
   MOVE_INTERVAL = 60
 
-  attr_accessor :dir
+  attr_accessor :dir, :timer
 
   def initialize(x, y, area)
     super(x, y, "#{area}_enemy", 3, 1)

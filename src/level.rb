@@ -101,6 +101,7 @@ class Level
       @pause_button.change_text(:pause)
       @undo_button.enabled = true
     end
+
     @aim_count = 0
     @set_count = 0
     @key_count = {
@@ -109,6 +110,8 @@ class Level
       y: 0,
       g: 0
     }
+    @history = []
+
     File.open("#{Res.prefix}levels/lvl#{@number}") do |f|
       lines = f.read.split("\n")
       @start_col = lines[0].to_i
@@ -124,6 +127,7 @@ class Level
       @objects = Array.new(@width) {
         Array.new(@height) { [] }
       }
+      @enemies = []
       lines[2..-1].each_with_index do |l, j|
         break if l.empty?
 
@@ -136,7 +140,8 @@ class Level
           when 'c'
             @objects[i][j] << Box.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE)
           when 'e'
-            @objects[i][j] << Enemy.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, @area_name)
+            @objects[i][j] << (enemy = Enemy.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, @area_name))
+            @enemies << enemy
           end
           if c == '+'
             @set_count += 1
@@ -157,6 +162,7 @@ class Level
     return if n_i < 0 || n_i >= @width || n_j < 0 || n_j >= @height
     return if @tiles[n_i][n_j] == '#' || @tiles[n_i][n_j] == 'h'
 
+    step = {}
     objs = @objects[n_i][n_j]
     nn_i = n_i + i_var
     nn_j = n_j + j_var
@@ -170,17 +176,30 @@ class Level
         will_set = @tiles[nn_i][nn_j] == 'x'
         if will_set && !obj.set
           @set_count += 1
+          step[:set_change] = 1
         elsif !will_set && obj.set
           @set_count -= 1
+          step[:set_change] = -1
         end
 
         @objects[n_i][n_j].delete(obj)
         @objects[nn_i][nn_j] << obj
         obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE, will_set)
+        step[:obj_move] = {
+          obj: obj,
+          from: [n_i, n_j],
+          to: [nn_i, nn_j],
+          ball: true
+        }
       when Door
         if @key_count[obj.color] > 0
           @objects[n_i][n_j].delete(obj)
           @key_count[obj.color] -= 1
+          step[:obj_remove] = {
+            obj: obj,
+            from: [n_i, n_j]
+          }
+          step[:key_use] = obj.color
         else
           break blocked = true
         end
@@ -191,20 +210,38 @@ class Level
         @objects[n_i][n_j].delete(obj)
         if @tiles[nn_i][nn_j] == 'h'
           @tiles[nn_i][nn_j] = 'H'
+          step[:obj_remove] = {
+            obj: obj,
+            from: [n_i, n_j]
+          }
+          step[:hole_cover] = [nn_i, nn_j]
         else
           @objects[nn_i][nn_j] << obj
           obj.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+          step[:obj_move] = {
+            obj: obj,
+            from: [n_i, n_j],
+            to: [nn_i, nn_j]
+          }
         end
       end
     end
     return if blocked
 
     if /r|b|y|g/ =~ @tiles[n_i][n_j]
-      @key_count[@tiles[n_i][n_j].to_sym] += 1
+      color = @tiles[n_i][n_j].to_sym
+      @key_count[color] += 1
       @tiles[n_i][n_j] = '.'
+      step[:key_add] = {
+        color: color,
+        from: [n_i, n_j]
+      }
     end
 
     @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
+    step[:player] = [i, j]
+    step[:enemies] = @enemies.map { |e| [e.x, e.y, e.dir, e.timer] }
+    @history << step
   end
 
   def enemy_move(enemy)
@@ -251,7 +288,57 @@ class Level
   end
 
   def undo
-    puts 'undoing...'
+    return if @history.empty?
+
+    step = @history.pop
+
+    @set_count -= step[:set_change] if step[:set_change]
+
+    if step[:obj_move]
+      obj = step[:obj_move][:obj]
+      from = [step[:obj_move][:from][0], step[:obj_move][:from][1]]
+      to = [step[:obj_move][:to][0], step[:obj_move][:to][1]]
+      @objects[to[0]][to[1]].delete(obj)
+      @objects[from[0]][from[1]] << obj
+      if step[:obj_move][:ball]
+        obj.move((from[0] - to[0]) * TILE_SIZE, (from[1] - to[1]) * TILE_SIZE, @tiles[from[0]][from[1]] == 'x')
+      else
+        obj.move((from[0] - to[0]) * TILE_SIZE, (from[1] - to[1]) * TILE_SIZE)
+      end
+    end
+
+    if step[:obj_remove]
+      obj = step[:obj_remove][:obj]
+      @objects[step[:obj_remove][:from][0]][step[:obj_remove][:from][1]] << obj
+    end
+
+    @key_count[step[:key_use]] += 1 if step[:key_use]
+
+    if step[:hole_cover]
+      @tiles[step[:hole_cover][0]][step[:hole_cover][1]] = 'h'
+    end
+
+    if step[:key_add]
+      @key_count[step[:key_add][:color]] -= 1
+      @tiles[step[:key_add][:from][0]][step[:key_add][:from][1]] = step[:key_add][:color].to_s
+    end
+
+    @enemies.each_with_index do |e, ind|
+      i = (e.x - @margin_x) / TILE_SIZE
+      j = (e.y - @margin_y) / TILE_SIZE
+      @objects[i][j].delete(e)
+      e.x = step[:enemies][ind][0]
+      e.y = step[:enemies][ind][1]
+      i = (e.x - @margin_x) / TILE_SIZE
+      j = (e.y - @margin_y) / TILE_SIZE
+      @objects[i][j] << e
+
+      e.dir = step[:enemies][ind][2]
+      e.timer = step[:enemies][ind][3]
+    end
+
+    @man.x = @margin_x + step[:player][0] * TILE_SIZE
+    @man.y = @margin_y + step[:player][1] * TILE_SIZE
   end
 
   def update
