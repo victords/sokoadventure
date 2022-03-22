@@ -15,3 +15,11 @@ window			Window
 music_volume	Music volume
 sound_volume	Sound volume
 level			Level
+pause			Pause
+resume			Resume
+undo			Undo
+restart			Restart
+quit			Quit
+are_you_sure	Are you sure?
+yes				Yes
+no				No

@@ -8,10 +8,20 @@ require_relative 'enemy'
 include MiniGL
 
 class Level
+  class MenuButton < Button
+    def initialize(x, y, text_id, &action)
+      super(x: x, y: y, font: Game.font, text: Game.text(text_id), img: :button2, &action)
+    end
+
+    def change_text(text_id)
+      @text = Game.text(text_id)
+      set_position(@x, @y)
+    end
+  end
+
   def initialize(number)
     @number = number
-
-    area_name =
+    @area_name =
       case (number - 1) / 10
       when 0 then :room
       when 1 then :forest
@@ -20,6 +30,77 @@ class Level
       when 4 then :cave
       end
 
+    @bg = Res.img("#{@area_name}_back", false, true)
+    @tile_floor = Res.img("#{@area_name}_ground", false, true)
+    @tile_wall = Res.img("#{@area_name}_block", false, true)
+    @tile_aim = Res.img("#{@area_name}_aim", false, true)
+    @holes = Res.imgs(:holeset, 4, 4, false, '.png', nil, true)
+    @set_box = Res.img(:box2)
+    @lock = Res.img(:lock)
+    @key_imgs = {
+      r: Res.img(:kr),
+      b: Res.img(:kb),
+      y: Res.img(:ky),
+      g: Res.img(:kg),
+    }
+
+    border = Res.img("#{@area_name}_border")
+    @borders = [
+      border.subimage(0, 0, 12, 12),   # top left
+      border.subimage(12, 0, 32, 12),  # top
+      border.subimage(44, 0, 12, 12),  # top right
+      border.subimage(0, 12, 12, 32),  # left
+      border.subimage(44, 12, 12, 32), # right
+      border.subimage(0, 44, 12, 12),  # bottom left
+      border.subimage(12, 44, 32, 12), # bottom
+      border.subimage(44, 44, 12, 12), # bottom right
+    ]
+
+    @text_helper = TextHelper.new(Game.font)
+    @text_helper_big = TextHelper.new(Game.big_font)
+
+    @buttons = [
+      (@pause_button = MenuButton.new(690, 10, :pause) do
+        @paused = !@paused
+        @pause_button.change_text(@paused ? :resume : :pause)
+        @undo_button.enabled = !@paused
+      end),
+      (@undo_button = MenuButton.new(690, 55, :undo) do
+        undo
+      end),
+      MenuButton.new(690, 100, :restart) do
+        @confirmation = :restart
+      end,
+      MenuButton.new(690, 145, :quit) do
+        @confirmation = :quit
+      end,
+    ]
+
+    @panel = Res.img(:panel)
+    @confirm_buttons = [
+      MenuButton.new(295, 310, :yes) do
+        if @confirmation == :restart
+          start
+        elsif @confirmation == :quit
+          Game.quit
+        end
+      end,
+      MenuButton.new(405, 310, :no) do
+        @confirmation = nil
+      end
+    ]
+
+    start
+    Game.play_song(@area_name)
+  end
+
+  def start
+    @confirmation = nil
+    if @paused
+      @paused = false
+      @pause_button.change_text(:pause)
+      @undo_button.enabled = true
+    end
     @aim_count = 0
     @set_count = 0
     @key_count = {
@@ -28,7 +109,7 @@ class Level
       y: 0,
       g: 0
     }
-    File.open("#{Res.prefix}levels/lvl#{number}") do |f|
+    File.open("#{Res.prefix}levels/lvl#{@number}") do |f|
       lines = f.read.split("\n")
       @start_col = lines[0].to_i
       @start_row = lines[1].to_i
@@ -49,13 +130,13 @@ class Level
         l.each_char.with_index do |c, i|
           case c
           when /o|\+/
-            @objects[i][j] << Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name, c == '+')
+            @objects[i][j] << Ball.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, @area_name, c == '+')
           when /R|B|Y|G/
             @objects[i][j] << Door.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, c.downcase)
           when 'c'
             @objects[i][j] << Box.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE)
           when 'e'
-            @objects[i][j] << Enemy.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, area_name)
+            @objects[i][j] << Enemy.new(@margin_x + i * TILE_SIZE, @margin_y + j * TILE_SIZE, @area_name)
           end
           if c == '+'
             @set_count += 1
@@ -68,37 +149,6 @@ class Level
     end
 
     @man = Man.new(@margin_x + @start_col * TILE_SIZE, @margin_y + @start_row * TILE_SIZE)
-
-    @bg = Res.img("#{area_name}_back", false, true)
-    @tile_floor = Res.img("#{area_name}_ground", false, true)
-    @tile_wall = Res.img("#{area_name}_block", false, true)
-    @tile_aim = Res.img("#{area_name}_aim", false, true)
-    @holes = Res.imgs(:holeset, 4, 4, false, '.png', nil, true)
-    @set_box = Res.img(:box2)
-    @lock = Res.img(:lock)
-    @key_imgs = {
-      r: Res.img(:kr),
-      b: Res.img(:kb),
-      y: Res.img(:ky),
-      g: Res.img(:kg),
-    }
-
-    border = Res.img("#{area_name}_border")
-    @borders = [
-      border.subimage(0, 0, 12, 12),   # top left
-      border.subimage(12, 0, 32, 12),  # top
-      border.subimage(44, 0, 12, 12),  # top right
-      border.subimage(0, 12, 12, 32),  # left
-      border.subimage(44, 12, 12, 32), # right
-      border.subimage(0, 44, 12, 12),  # bottom left
-      border.subimage(12, 44, 32, 12), # bottom
-      border.subimage(44, 44, 12, 12), # bottom right
-    ]
-
-    @text_helper = TextHelper.new(Game.font)
-    @text_helper_big = TextHelper.new(Game.big_font)
-
-    Game.play_song(area_name)
   end
 
   def player_move(i, j, i_var, j_var)
@@ -200,7 +250,18 @@ class Level
     end
   end
 
+  def undo
+    puts 'undoing...'
+  end
+
   def update
+    if @confirmation
+      @confirm_buttons.each(&:update)
+    else
+      @buttons.each(&:update)
+    end
+    return if @confirmation || @paused
+
     prev_count = @set_count
 
     i = (@man.x - @margin_x) / TILE_SIZE
@@ -275,5 +336,17 @@ class Level
     @text_helper.write_line(@key_count[:y], 36, 90, :left, 0xcccc00, 255, :shadow)
     @key_imgs[:g].draw(10, 110, 0, 0.5, 0.5)
     @text_helper.write_line(@key_count[:g], 36, 110, :left, 0x008000, 255, :shadow)
+
+    @buttons.each(&:draw)
+
+    if @confirmation
+      G.window.draw_quad(0, 0, 0x80000000,
+                         SCREEN_WIDTH, 0, 0x80000000,
+                         0, SCREEN_HEIGHT, 0x80000000,
+                         SCREEN_WIDTH, SCREEN_HEIGHT, 0x80000000, 100)
+      @panel.draw((SCREEN_WIDTH - @panel.width) / 2, (SCREEN_HEIGHT - @panel.height) / 2, 100)
+      @text_helper.write_line(Game.text(:are_you_sure), 400, 260, :center, 0, 255, nil, 0, 0, 0, 100)
+      @confirm_buttons.each { |b| b.draw(255, 100) }
+    end
   end
 end

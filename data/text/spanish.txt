@@ -15,3 +15,11 @@ window			Ventana
 music_volume	Volúmen de música
 sound_volume	Volúmen de sonidos
 level			Nivel
+pause			Pausar
+resume			Continuar
+undo			Deshacer
+restart			Reanudar
+quit			Salir
+are_you_sure	¿Estás seguro?
+yes				Sí
+no				No

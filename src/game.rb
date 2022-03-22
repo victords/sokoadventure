@@ -125,9 +125,14 @@ class Game
       @sound_volume = 10 if @sound_volume > 10
     end
 
+    def quit
+      @controller = Menu.new
+    end
+
     def update
       if KB.key_pressed?(Gosu::KB_RETURN) && (KB.key_down?(Gosu::KB_LEFT_ALT) || KB.key_down?(Gosu::KB_RIGHT_ALT))
         @full_screen = !@full_screen
+        save_config
       end
 
       @controller.update
