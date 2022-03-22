@@ -239,7 +239,7 @@ class Level
     end
 
     @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
-    step[:player] = [i, j]
+    step[:player] = [i, j, @man.dir]
     step[:enemies] = @enemies.map { |e| [e.x, e.y, e.dir, e.timer] }
     @history << step
   end
@@ -339,6 +339,7 @@ class Level
 
     @man.x = @margin_x + step[:player][0] * TILE_SIZE
     @man.y = @margin_y + step[:player][1] * TILE_SIZE
+    @man.set_dir(step[:player][2])
   end
 
   def update
@@ -355,12 +356,16 @@ class Level
     j = (@man.y - @margin_y) / TILE_SIZE
     if KB.key_pressed?(Gosu::KB_UP) || KB.key_held?(Gosu::KB_UP)
       player_move(i, j, 0, -1)
+      @man.set_dir(0)
     elsif KB.key_pressed?(Gosu::KB_RIGHT) || KB.key_held?(Gosu::KB_RIGHT)
       player_move(i, j, 1, 0)
+      @man.set_dir(1)
     elsif KB.key_pressed?(Gosu::KB_DOWN) || KB.key_held?(Gosu::KB_DOWN)
       player_move(i, j, 0, 1)
+      @man.set_dir(2)
     elsif KB.key_pressed?(Gosu::KB_LEFT) || KB.key_held?(Gosu::KB_LEFT)
       player_move(i, j, -1, 0)
+      @man.set_dir(3)
     end
 
     if prev_count < @aim_count && @set_count == @aim_count
@@ -371,6 +376,29 @@ class Level
       obj.update(self) if obj.respond_to?(:update)
     end
     @man.update
+  end
+
+  def get_hole(i, j)
+    up = j > 0 && /h/i =~ @tiles[i][j - 1]
+    rt = i < @width - 1 && /h/i =~ @tiles[i + 1][j]
+    dn = j < @height - 1 && /h/i =~ @tiles[i][j + 1]
+    lf = i > 0 && /h/i =~ @tiles[i - 1][j]
+    return 10 if up && rt && dn && lf
+    return 2 if up && rt && dn
+    return 6 if up && rt && lf
+    return 7 if up && dn && lf
+    return 3 if rt && dn && lf
+    return 4 if up && rt
+    return 14 if up && dn
+    return 5 if up && lf
+    return 0 if rt && dn
+    return 11 if rt && lf
+    return 1 if dn && lf
+    return 13 if up
+    return 12 if rt
+    return 8 if dn
+    return 9 if lf
+    15
   end
 
   def draw
@@ -403,7 +431,7 @@ class Level
           when '#' then @tile_wall
           when 'x' then @tile_aim
           when /r|b|y|g/ then @key_imgs[tile.to_sym]
-          when /h/i then @holes[0]
+          when /h/i then @holes[get_hole(i, j)]
           when 'l' then @lock
           end
         overlay&.draw(x, y, 0)
