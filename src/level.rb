@@ -14,16 +14,23 @@ class Level
   attr_reader :number
 
   class MenuButton < Button
-    def initialize(x, y, text_id, &action)
-      super(x: x, y: y, font: Game.font, text: Game.text(text_id), img: :button2, &action)
+    def initialize(x, y, text_id, sh_key, sh_key_text, &action)
+      super(x: x, y: y, font: Game.font, text: "#{Game.text(text_id)} (#{sh_key_text})", img: :button2, &action)
+      @sh_key = sh_key
+      @sh_key_text = sh_key_text
       @action = lambda do |_|
         action.call
         Game.play_sound(:click)
       end
     end
 
+    def update
+      super
+      @action.call(@params) if @enabled && KB.key_pressed?(@sh_key)
+    end
+
     def change_text(text_id)
-      @text = Game.text(text_id)
+      @text = "#{Game.text(text_id)} (#{@sh_key_text})"
       set_position(@x, @y)
     end
   end
@@ -69,25 +76,25 @@ class Level
     @text_helper_big = TextHelper.new(Game.big_font)
 
     @buttons = [
-      (@pause_button = MenuButton.new(690, 10, :pause) do
+      (@pause_button = MenuButton.new(690, 10, :pause, Gosu::KB_SPACE, '_') do
         @paused = !@paused
         @pause_button.change_text(@paused ? :resume : :pause)
         @undo_button.enabled = !@paused
       end),
-      (@undo_button = MenuButton.new(690, 55, :undo) do
+      (@undo_button = MenuButton.new(690, 55, :undo, Gosu::KB_Z, 'Z') do
         undo
       end),
-      MenuButton.new(690, 100, :restart) do
+      MenuButton.new(690, 100, :restart, Gosu::KB_R, 'R') do
         @confirmation = :restart
       end,
-      MenuButton.new(690, 145, :quit) do
+      MenuButton.new(690, 145, :quit, Gosu::KB_ESCAPE, 'Esc') do
         @confirmation = :quit
       end,
     ]
 
     @panel = Res.img(:panel)
     @confirm_buttons = [
-      MenuButton.new(295, 310, :yes) do
+      MenuButton.new(295, 340, :yes, Gosu::KB_Q, 'Q') do
         if @confirmation == :restart
           Game.register_attempt
           start
@@ -95,7 +102,7 @@ class Level
           Game.quit
         end
       end,
-      MenuButton.new(405, 310, :no) do
+      MenuButton.new(405, 340, :no, Gosu::KB_W, 'W') do
         @confirmation = nil
       end
     ]
@@ -497,7 +504,8 @@ class Level
                          0, SCREEN_HEIGHT, 0x80000000,
                          SCREEN_WIDTH, SCREEN_HEIGHT, 0x80000000, 100)
       @panel.draw((SCREEN_WIDTH - @panel.width) / 2, (SCREEN_HEIGHT - @panel.height) / 2, 100)
-      @text_helper.write_line(Game.text(:are_you_sure), 400, 260, :center, 0, 255, nil, 0, 0, 0, 100)
+      @text_helper_big.write_line(Game.text(@confirmation), 400, 210, :center, 0, 255, nil, 0, 0, 0, 100)
+      @text_helper.write_line(Game.text(:are_you_sure), 400, 275, :center, 0, 255, nil, 0, 0, 0, 100)
       @confirm_buttons.each { |b| b.draw(255, 100) }
     elsif @effect
       @effect.draw
