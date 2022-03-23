@@ -35,8 +35,6 @@ class Menu
 
   def initialize
     @bg = Res.img(:menu)
-    Game.play_song(:theme)
-
     @panel = Res.img(:panel)
     @text_helper = TextHelper.new(Game.font)
 

@@ -1,4 +1,6 @@
 lang_name		Português
+powered_by		Feito com
+game_by			Um jogo por
 presents		Apresenta...
 play			Jogar
 instructions	Instruções

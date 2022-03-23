@@ -1,4 +1,6 @@
 lang_name		Español
+powered_by		Desarrollado con
+game_by			Un juego de
 presents		Presenta...
 play			Jugar
 instructions	Cómo jugar

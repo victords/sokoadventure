@@ -3,6 +3,7 @@ require 'rbconfig'
 require 'fileutils'
 require_relative 'menu'
 require_relative 'level'
+require_relative 'presentation'
 
 class Game
   LEVEL_COUNT = 50
@@ -68,7 +69,7 @@ class Game
       @font = Res.font(:font, 20)
       @big_font = Res.font(:font, 32)
 
-      @controller = Menu.new
+      @controller = Presentation.new
     end
 
     def text(key)
@@ -84,6 +85,10 @@ class Game
 
     def play_sound(id)
       Res.sound(id).play(@sound_volume * 0.1)
+    end
+
+    def open_menu
+      @controller = Menu.new
     end
 
     def start(level)

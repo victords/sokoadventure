@@ -1,4 +1,6 @@
 lang_name		English
+powered_by		Powered by
+game_by			A game by
 presents		Presents...
 play			Play
 instructions	Instructions
