@@ -23,3 +23,6 @@ quit			Sair
 are_you_sure	Tem certeza?
 yes				Sim
 no				Não
+won				Nível completo!
+try_again		Tente novamente!
+congratulations	Parabéns, jogo completo!

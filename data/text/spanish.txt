@@ -23,3 +23,6 @@ quit			Salir
 are_you_sure	¿Estás seguro?
 yes				Sí
 no				No
+won				¡Nivel completo!
+try_again		¡Inténtalo de nuevo!
+congratulations	¡Felicidades, juego completo!

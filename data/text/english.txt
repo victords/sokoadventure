@@ -23,3 +23,6 @@ quit			Quit
 are_you_sure	Are you sure?
 yes				Yes
 no				No
+won				Level completed!
+try_again		Try again!
+congratulations	Congratulations, all levels cleared!

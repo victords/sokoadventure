@@ -4,10 +4,13 @@ require_relative 'ball'
 require_relative 'door'
 require_relative 'box'
 require_relative 'enemy'
+require_relative 'text_effect'
 
 include MiniGL
 
 class Level
+  EFFECT_DURATION = 150
+
   class MenuButton < Button
     def initialize(x, y, text_id, &action)
       super(x: x, y: y, font: Game.font, text: Game.text(text_id), img: :button2, &action)
@@ -96,6 +99,8 @@ class Level
 
   def start
     @confirmation = nil
+    @effect = nil
+    @effect_timer = 0
     if @paused
       @paused = false
       @pause_button.change_text(:pause)
@@ -273,7 +278,9 @@ class Level
     j = (enemy.y - @margin_y) / TILE_SIZE
     m_i = (@man.x - @margin_x) / TILE_SIZE
     m_j = (@man.y - @margin_y) / TILE_SIZE
-    puts 'dead' if i == m_i && j == m_j
+    if i == m_i && j == m_j
+      @effect = TextEffect.new(:try_again, 0xff6666)
+    end
   end
 
   def obstacle_at?(i, j, check_hole = true)
@@ -342,13 +349,31 @@ class Level
     @man.set_dir(step[:player][2])
   end
 
+  def congratulate
+    @effect = TextEffect.new(:congratulations, 0xcccc00)
+    @effect_timer = -150
+  end
+
   def update
     if @confirmation
       @confirm_buttons.each(&:update)
+    elsif @effect
+      @effect.update
+      @effect_timer += 1
+      if @effect_timer == EFFECT_DURATION
+        case @effect.type
+        when :won
+          Game.next_level(@number)
+        when :try_again
+          start
+        when :congratulations
+          Game.quit
+        end
+      end
     else
       @buttons.each(&:update)
     end
-    return if @confirmation || @paused
+    return if @confirmation || @effect || @paused
 
     prev_count = @set_count
 
@@ -368,14 +393,14 @@ class Level
       @man.set_dir(3)
     end
 
-    if prev_count < @aim_count && @set_count == @aim_count
-      puts 'won'
-    end
-
     @objects.flatten.each do |obj|
       obj.update(self) if obj.respond_to?(:update)
     end
     @man.update
+
+    if !@effect && prev_count < @aim_count && @set_count == @aim_count
+      @effect = TextEffect.new(:won, 0xffffff)
+    end
   end
 
   def get_hole(i, j)
@@ -462,6 +487,8 @@ class Level
       @panel.draw((SCREEN_WIDTH - @panel.width) / 2, (SCREEN_HEIGHT - @panel.height) / 2, 100)
       @text_helper.write_line(Game.text(:are_you_sure), 400, 260, :center, 0, 255, nil, 0, 0, 0, 100)
       @confirm_buttons.each { |b| b.draw(255, 100) }
+    elsif @effect
+      @effect.draw
     end
   end
 end

@@ -5,6 +5,8 @@ require_relative 'menu'
 require_relative 'level'
 
 class Game
+  LEVEL_COUNT = 50
+
   class << self
     include MiniGL
 
@@ -74,8 +76,8 @@ class Game
     end
 
     def play_song(id)
-      Gosu::Song.current_song&.stop
       song = Res.song(id)
+      Gosu::Song.current_song&.stop unless Gosu::Song.current_song == song
       song.volume = @music_volume * 0.1
       song.play(true)
     end
@@ -127,6 +129,18 @@ class Game
 
     def quit
       @controller = Menu.new
+    end
+
+    def next_level(current)
+      if current < LEVEL_COUNT
+        if @last_level <= current
+          @last_level += 1
+          save_config
+        end
+        @controller = Level.new(current + 1)
+      else
+        @controller.congratulate
+      end
     end
 
     def update
