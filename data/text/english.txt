@@ -26,3 +26,4 @@ no				No
 won				Level completed!
 try_again		Try again!
 congratulations	Congratulations, all levels cleared!
+end				<END>

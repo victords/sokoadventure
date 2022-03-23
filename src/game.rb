@@ -83,7 +83,15 @@ class Game
     end
 
     def start(level)
+      @current_score = {
+        start_level: level,
+        attempts: 1
+      }
       @controller = Level.new(level)
+    end
+
+    def register_attempt
+      @current_score[:attempts] += 1
     end
 
     def save_scores
@@ -128,10 +136,13 @@ class Game
     end
 
     def quit
+      @current_score[:end_level] = @controller.number
+      update_scores
       @controller = Menu.new
     end
 
-    def next_level(current)
+    def next_level
+      current = @controller.number
       if current < LEVEL_COUNT
         if @last_level <= current
           @last_level += 1
@@ -139,8 +150,30 @@ class Game
         end
         @controller = Level.new(current + 1)
       else
+        @current_score[:end_level] = LEVEL_COUNT + 1
+        update_scores
         @controller.congratulate
       end
+    end
+
+    def update_scores
+      return if @current_score[:start_level] == @current_score[:end_level]
+
+      inserted = false
+      @scores.each_with_index do |s, i|
+        if @current_score[:end_level] > s[1] ||
+           @current_score[:end_level] == s[1] && @current_score[:start_level] < s[0] ||
+           @current_score[:end_level] == s[1] && @current_score[:start_level] == s[0] && @current_score[:attempts] < s[2]
+          @scores.insert(i, [@current_score[:start_level], @current_score[:end_level], @current_score[:attempts]])
+          break inserted = true
+        end
+      end
+      if @scores.size < 5 && !inserted
+        @scores << [@current_score[:start_level], @current_score[:end_level], @current_score[:attempts]]
+      end
+      @scores.pop if @scores.size > 5
+
+      save_scores
     end
 
     def update

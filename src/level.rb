@@ -11,6 +11,8 @@ include MiniGL
 class Level
   EFFECT_DURATION = 150
 
+  attr_reader :number
+
   class MenuButton < Button
     def initialize(x, y, text_id, &action)
       super(x: x, y: y, font: Game.font, text: Game.text(text_id), img: :button2, &action)
@@ -83,6 +85,7 @@ class Level
     @confirm_buttons = [
       MenuButton.new(295, 310, :yes) do
         if @confirmation == :restart
+          Game.register_attempt
           start
         elsif @confirmation == :quit
           Game.quit
@@ -363,8 +366,9 @@ class Level
       if @effect_timer == EFFECT_DURATION
         case @effect.type
         when :won
-          Game.next_level(@number)
+          Game.next_level
         when :try_again
+          Game.register_attempt
           start
         when :congratulations
           Game.quit

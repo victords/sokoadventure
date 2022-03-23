@@ -26,3 +26,4 @@ no				Não
 won				Nível completo!
 try_again		Tente novamente!
 congratulations	Parabéns, jogo completo!
+end				<FIM>
