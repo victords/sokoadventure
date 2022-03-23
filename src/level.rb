@@ -16,6 +16,10 @@ class Level
   class MenuButton < Button
     def initialize(x, y, text_id, &action)
       super(x: x, y: y, font: Game.font, text: Game.text(text_id), img: :button2, &action)
+      @action = lambda do |_|
+        action.call
+        Game.play_sound(:click)
+      end
     end
 
     def change_text(text_id)
@@ -199,6 +203,7 @@ class Level
           to: [nn_i, nn_j],
           ball: true
         }
+        Game.play_sound(:push)
       when Door
         if @key_count[obj.color] > 0
           @objects[n_i][n_j].delete(obj)
@@ -208,6 +213,7 @@ class Level
             from: [n_i, n_j]
           }
           step[:key_use] = obj.color
+          Game.play_sound(:open)
         else
           break blocked = true
         end
@@ -232,6 +238,7 @@ class Level
             to: [nn_i, nn_j]
           }
         end
+        Game.play_sound(:push)
       end
     end
     return if blocked
@@ -404,6 +411,7 @@ class Level
 
     if !@effect && prev_count < @aim_count && @set_count == @aim_count
       @effect = TextEffect.new(:won, 0xffffff)
+      Game.play_sound(:clear)
     end
   end
 

@@ -82,6 +82,10 @@ class Game
       song.play(true)
     end
 
+    def play_sound(id)
+      Res.sound(id).play(@sound_volume * 0.1)
+    end
+
     def start(level)
       @current_score = {
         start_level: level,

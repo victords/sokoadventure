@@ -8,6 +8,10 @@ class Menu
       super(x: 280, y: y, font: Game.big_font, text: Game.text(text_id), img: :button, center_x: false, margin_x: 80, margin_y: -4, &action)
       @text_id = text_id
       @icon = Res.img(icon)
+      @action = lambda do |_|
+        action.call
+        Game.play_sound(:click)
+      end
     end
 
     def update_text
@@ -23,6 +27,7 @@ class Menu
   class LevelButton < Button
     def initialize(x:, y:, number:)
       super(x: x, y: y, font: Game.big_font, text: number.to_s, img: :button3, margin_x: -5, margin_y: -4) do
+        Game.play_sound(:click)
         Game.start(number)
       end
     end
@@ -59,22 +64,28 @@ class Menu
       options: [
         Button.new(500, 280, nil, nil, :change) do
           Game.toggle_full_screen
+          Game.play_sound(:click)
         end,
         Button.new(500, 320, nil, nil, :change) do
           Game.next_language
           update_button_texts
+          Game.play_sound(:click)
         end,
         Button.new(500, 367, nil, nil, :less) do
           Game.change_music_volume(-1)
+          Game.play_sound(:click)
         end,
         Button.new(522, 367, nil, nil, :more) do
           Game.change_music_volume(1)
+          Game.play_sound(:click)
         end,
         Button.new(500, 407, nil, nil, :less) do
           Game.change_sound_volume(-1)
+          Game.play_sound(:click)
         end,
         Button.new(522, 407, nil, nil, :more) do
           Game.change_sound_volume(1)
+          Game.play_sound(:click)
         end,
         MainButton.new(y: 540, text_id: :back, icon: :back) do
           Game.save_config
