@@ -1,12 +1,11 @@
 [Desktop Entry]
 Type=Application
-Version=1.0.0
-Encoding=UTF-8
+Version=1.0
 Name=SokoAdventure
 GenericName=Puzzle Game
-Comment=Play a Sokoban style game
+Comment=Play a Sokoban inspired game
 Icon=sokoadventure
-Exec=/usr/share/games/sokoadventure/launch.sh
+Exec=ruby /opt/vds-games/sokoadventure/src/main.rb
 Terminal=false
 StartupNotify=false
 Categories=Game;LogicGame
