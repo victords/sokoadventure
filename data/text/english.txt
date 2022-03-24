@@ -8,7 +8,7 @@ high_scores		High Scores
 options			Options
 exit			Exit
 back			Back
-help_text		Push objects to their respective places.\You finish a level when all places are occupied.\Avoid enemies.\Objects change their appearance at each new scenery.
+help_text		Use the arrow keys to move.\Push objects to their respective places.\You finish a level when all places are occupied.\Avoid enemies.\Objects change their appearance at each new scenery.
 from_level		From level...
 to_level		To level...
 in_tries		In ... tries
