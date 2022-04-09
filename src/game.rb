@@ -87,6 +87,36 @@ class Game
       Res.sound(id).play(@sound_volume * 0.1)
     end
 
+    def key_press?(id, held = false)
+      keys = case id
+             when :up
+               [Gosu::KB_UP, Gosu::GP_0_UP]
+             when :right
+               [Gosu::KB_RIGHT, Gosu::GP_0_RIGHT]
+             when :down
+               [Gosu::KB_DOWN, Gosu::GP_0_DOWN]
+             when :left
+               [Gosu::KB_LEFT, Gosu::GP_0_LEFT]
+             when :confirm
+               [Gosu::KB_Q, Gosu::GP_0_BUTTON_0]
+             when :cancel
+               [Gosu::KB_W, Gosu::GP_0_BUTTON_1]
+             when :undo
+               [Gosu::KB_Z, Gosu::GP_0_BUTTON_2]
+             when :restart
+               [Gosu::KB_R, Gosu::GP_0_BUTTON_3]
+             when :quit
+               [Gosu::KB_ESCAPE, Gosu::GP_0_BUTTON_4]
+             when :pause
+               [Gosu::KB_SPACE, Gosu::GP_0_BUTTON_6]
+             end
+      keys.any? { |k| KB.key_pressed?(k) || held && KB.key_held?(k) }
+    end
+
+    def toggle_gamepad(connected)
+      @controller.toggle_gamepad(connected) if @controller.respond_to?(:toggle_gamepad)
+    end
+
     def open_menu
       @controller = Menu.new
     end

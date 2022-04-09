@@ -19,6 +19,14 @@ class Window < MiniGL::GameWindow
     true
   end
 
+  def gamepad_connected(_index)
+    Game.toggle_gamepad(true)
+  end
+
+  def gamepad_disconnected(_index)
+    Game.toggle_gamepad(false)
+  end
+
   def update
     KB.update
     Mouse.update

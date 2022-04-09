@@ -15,7 +15,8 @@ class Level
 
   class MenuButton < Button
     def initialize(x, y, text_id, sh_key, sh_key_text, &action)
-      super(x: x, y: y, font: Game.font, text: "#{Game.text(text_id)} (#{sh_key_text})", img: :button2, &action)
+      super(x: x, y: y, font: Game.font, text: '', img: :button2, &action)
+      @text_id = text_id
       @sh_key = sh_key
       @sh_key_text = sh_key_text
       @action = lambda do |_|
@@ -24,14 +25,45 @@ class Level
       end
     end
 
-    def update
-      super
-      @action.call(@params) if @enabled && KB.key_pressed?(@sh_key)
+    def change_text(text_id)
+      @text_id = text_id
+      if @gp_button
+        @text = Game.text(text_id)
+      else
+        @text = "#{Game.text(text_id)} (#{@sh_key_text})"
+      end
+      set_position(@x, @y)
     end
 
-    def change_text(text_id)
-      @text = "#{Game.text(text_id)} (#{@sh_key_text})"
+    def toggle_gamepad(connected)
+      if connected
+        @margin_x = -15
+        @text = Game.text(@text_id)
+        gp_button_img = case @sh_key
+                        when :confirm then :gpA
+                        when :cancel then :gpB
+                        when :undo then :gpX
+                        when :restart then :gpY
+                        when :pause then :gpStart
+                        when :quit then :gpBack
+                        end
+        @gp_button = Res.img(gp_button_img)
+      else
+        @margin_x = 0
+        @text = "#{Game.text(@text_id)} (#{@sh_key_text})"
+        @gp_button = nil
+      end
       set_position(@x, @y)
+    end
+
+    def update
+      super
+      @action.call(@params) if @enabled && Game.key_press?(@sh_key)
+    end
+
+    def draw(alpha = 255, z_index = 0)
+      super
+      @gp_button&.draw(@text_x + Game.font.text_width(@text) / 2 + 10, @text_y - 10, z_index)
     end
   end
 
@@ -76,25 +108,25 @@ class Level
     @text_helper_big = TextHelper.new(Game.big_font)
 
     @buttons = [
-      (@pause_button = MenuButton.new(690, 10, :pause, Gosu::KB_SPACE, '_') do
+      (@pause_button = MenuButton.new(690, 10, :pause, :pause, '_') do
         @paused = !@paused
         @pause_button.change_text(@paused ? :resume : :pause)
         @undo_button.enabled = !@paused
       end),
-      (@undo_button = MenuButton.new(690, 55, :undo, Gosu::KB_Z, 'Z') do
+      (@undo_button = MenuButton.new(690, 55, :undo, :undo, 'Z') do
         undo
       end),
-      MenuButton.new(690, 100, :restart, Gosu::KB_R, 'R') do
+      MenuButton.new(690, 100, :restart, :restart, 'R') do
         @confirmation = :restart
       end,
-      MenuButton.new(690, 145, :quit, Gosu::KB_ESCAPE, 'Esc') do
+      MenuButton.new(690, 145, :quit, :quit, 'Esc') do
         @confirmation = :quit
       end,
     ]
 
     @panel = Res.img(:panel)
     @confirm_buttons = [
-      MenuButton.new(295, 340, :yes, Gosu::KB_Q, 'Q') do
+      MenuButton.new(295, 340, :yes, :confirm, 'Q') do
         if @confirmation == :restart
           Game.register_attempt
           start
@@ -104,7 +136,7 @@ class Level
           Game.next_level
         end
       end,
-      MenuButton.new(405, 340, :no, Gosu::KB_W, 'W') do
+      MenuButton.new(405, 340, :no, :cancel, 'W') do
         if @confirmation == :next_level
           @replay = true
           @replay_step = @replay_timer = 0
@@ -117,7 +149,7 @@ class Level
 
     @replay_interval = 15
     @replay_buttons = [
-      MenuButton.new(690, 10, :finish, Gosu::KB_ESCAPE, 'Esc') do
+      MenuButton.new(690, 10, :finish, :quit, 'Esc') do
         @confirmation = :next_level
       end,
       Button.new(690, 60, nil, nil, :less) do
@@ -136,6 +168,7 @@ class Level
       end
     ]
 
+    toggle_gamepad(Gosu.gamepad_name(0))
     start
     Game.play_song(@area_name)
   end
@@ -202,6 +235,12 @@ class Level
 
     @man = Man.new(@margin_x + @start_col * TILE_SIZE, @margin_y + @start_row * TILE_SIZE)
     @history = [] unless @replay
+  end
+
+  def toggle_gamepad(connected)
+    @buttons.each { |b| b.toggle_gamepad(connected) if b.is_a?(MenuButton) }
+    @confirm_buttons.each { |b| b.toggle_gamepad(connected) if b.is_a?(MenuButton) }
+    @replay_buttons.each { |b| b.toggle_gamepad(connected) if b.is_a?(MenuButton) }
   end
 
   def player_move(i, j, i_var, j_var)
@@ -459,16 +498,16 @@ class Level
     else
       i = (@man.x - @margin_x) / TILE_SIZE
       j = (@man.y - @margin_y) / TILE_SIZE
-      if KB.key_pressed?(Gosu::KB_UP) || KB.key_held?(Gosu::KB_UP)
+      if Game.key_press?(:up, true)
         player_move(i, j, 0, -1)
         @man.set_dir(0)
-      elsif KB.key_pressed?(Gosu::KB_RIGHT) || KB.key_held?(Gosu::KB_RIGHT)
+      elsif Game.key_press?(:right, true)
         player_move(i, j, 1, 0)
         @man.set_dir(1)
-      elsif KB.key_pressed?(Gosu::KB_DOWN) || KB.key_held?(Gosu::KB_DOWN)
+      elsif Game.key_press?(:down, true)
         player_move(i, j, 0, 1)
         @man.set_dir(2)
-      elsif KB.key_pressed?(Gosu::KB_LEFT) || KB.key_held?(Gosu::KB_LEFT)
+      elsif Game.key_press?(:left, true)
         player_move(i, j, -1, 0)
         @man.set_dir(3)
       end
