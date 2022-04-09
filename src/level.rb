@@ -153,18 +153,10 @@ class Level
         @confirmation = :next_level
       end,
       Button.new(690, 60, nil, nil, :less) do
-        if @replay_interval < 15
-          @replay_interval = 15
-        elsif @replay_interval < 30
-          @replay_interval = 30
-        end
+        reduce_replay_speed
       end,
       Button.new(771, 60, nil, nil, :more) do
-        if @replay_interval > 15
-          @replay_interval = 15
-        elsif @replay_interval > 7
-          @replay_interval = 7
-        end
+        increase_replay_speed
       end
     ]
 
@@ -455,6 +447,22 @@ class Level
     reposition_enemies(step)
   end
 
+  def reduce_replay_speed
+    if @replay_interval < 15
+      @replay_interval = 15
+    elsif @replay_interval < 30
+      @replay_interval = 30
+    end
+  end
+
+  def increase_replay_speed
+    if @replay_interval > 15
+      @replay_interval = 15
+    elsif @replay_interval > 7
+      @replay_interval = 7
+    end
+  end
+
   def congratulate
     @effect = TextEffect.new(:congratulations, 0xcccc00)
     @effect_timer = -150
@@ -494,6 +502,12 @@ class Level
         self.redo
         @replay_step += 1
         @replay_timer = 0
+      end
+
+      if Game.key_press?(:left)
+        reduce_replay_speed
+      elsif Game.key_press?(:right)
+        increase_replay_speed
       end
     else
       i = (@man.x - @margin_x) / TILE_SIZE

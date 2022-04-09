@@ -13,9 +13,9 @@ class Presentation
 
   def update
     @timer += 1
-    if KB.key_pressed?(Gosu::KB_RETURN) ||
-      KB.key_pressed?(Gosu::KB_SPACE) ||
-      KB.key_pressed?(Gosu::KB_ESCAPE) ||
+    if Game.key_press?(:confirm) ||
+      Game.key_press?(:pause) ||
+      Game.key_press?(:quit) ||
       Mouse.button_pressed?(:left) ||
       @timer == 420
       Game.open_menu
