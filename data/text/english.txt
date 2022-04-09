@@ -29,3 +29,9 @@ won				Level completed!
 try_again		Try again!
 congratulations	Congratulations, all levels cleared!
 end				<END>
+next_level		Next
+view_replay		Replay
+finish			Finish
+slow			Slow
+normal			Normal
+fast			Fast

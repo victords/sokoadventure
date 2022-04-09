@@ -100,10 +100,39 @@ class Level
           start
         elsif @confirmation == :quit
           Game.quit
+        elsif @confirmation == :next_level
+          Game.next_level
         end
       end,
       MenuButton.new(405, 340, :no, Gosu::KB_W, 'W') do
-        @confirmation = nil
+        if @confirmation == :next_level
+          @replay = true
+          @replay_step = @replay_timer = 0
+          start
+        else
+          @confirmation = nil
+        end
+      end
+    ]
+
+    @replay_interval = 15
+    @replay_buttons = [
+      MenuButton.new(690, 10, :finish, Gosu::KB_ESCAPE, 'Esc') do
+        @confirmation = :next_level
+      end,
+      Button.new(690, 60, nil, nil, :less) do
+        if @replay_interval < 15
+          @replay_interval = 15
+        elsif @replay_interval < 30
+          @replay_interval = 30
+        end
+      end,
+      Button.new(771, 60, nil, nil, :more) do
+        if @replay_interval > 15
+          @replay_interval = 15
+        elsif @replay_interval > 7
+          @replay_interval = 7
+        end
       end
     ]
 
@@ -129,7 +158,6 @@ class Level
       y: 0,
       g: 0
     }
-    @history = []
 
     File.open("#{Res.prefix}levels/lvl#{@number}") do |f|
       lines = f.read.split("\n")
@@ -173,6 +201,7 @@ class Level
     end
 
     @man = Man.new(@margin_x + @start_col * TILE_SIZE, @margin_y + @start_row * TILE_SIZE)
+    @history = [] unless @replay
   end
 
   def player_move(i, j, i_var, j_var)
@@ -261,9 +290,9 @@ class Level
     end
 
     @man.move(i_var * TILE_SIZE, j_var * TILE_SIZE)
-    step[:player] = [i, j, @man.dir]
+    step[:player] = [i, j, i_var, j_var, @man.dir]
     step[:enemies] = @enemies.map { |e| [e.x, e.y, e.dir, e.timer] }
-    @history << step
+    @history << step unless @replay
   end
 
   def enemy_move(enemy)
@@ -311,6 +340,22 @@ class Level
     end
   end
 
+  def reposition_enemies(step)
+    @enemies.each_with_index do |e, ind|
+      i = (e.x - @margin_x) / TILE_SIZE
+      j = (e.y - @margin_y) / TILE_SIZE
+      @objects[i][j].delete(e)
+      e.x = step[:enemies][ind][0]
+      e.y = step[:enemies][ind][1]
+      i = (e.x - @margin_x) / TILE_SIZE
+      j = (e.y - @margin_y) / TILE_SIZE
+      @objects[i][j] << e
+
+      e.dir = step[:enemies][ind][2]
+      e.timer = step[:enemies][ind][3]
+    end
+  end
+
   def undo
     return if @history.empty?
 
@@ -347,23 +392,28 @@ class Level
       @tiles[step[:key_add][:from][0]][step[:key_add][:from][1]] = step[:key_add][:color].to_s
     end
 
-    @enemies.each_with_index do |e, ind|
-      i = (e.x - @margin_x) / TILE_SIZE
-      j = (e.y - @margin_y) / TILE_SIZE
-      @objects[i][j].delete(e)
-      e.x = step[:enemies][ind][0]
-      e.y = step[:enemies][ind][1]
-      i = (e.x - @margin_x) / TILE_SIZE
-      j = (e.y - @margin_y) / TILE_SIZE
-      @objects[i][j] << e
-
-      e.dir = step[:enemies][ind][2]
-      e.timer = step[:enemies][ind][3]
-    end
+    reposition_enemies(step)
 
     @man.x = @margin_x + step[:player][0] * TILE_SIZE
     @man.y = @margin_y + step[:player][1] * TILE_SIZE
-    @man.set_dir(step[:player][2])
+    @man.set_dir(step[:player][4])
+  end
+
+  def redo
+    step = @history[@replay_step]
+    i_var = step[:player][2]
+    j_var = step[:player][3]
+    player_move(step[:player][0], step[:player][1], i_var, j_var)
+    if j_var < 0
+      @man.set_dir(0)
+    elsif i_var > 0
+      @man.set_dir(1)
+    elsif j_var > 0
+      @man.set_dir(2)
+    else
+      @man.set_dir(3)
+    end
+    reposition_enemies(step)
   end
 
   def congratulate
@@ -380,7 +430,9 @@ class Level
       if @effect_timer == EFFECT_DURATION
         case @effect.type
         when :won
-          Game.next_level
+          @confirmation = :next_level
+          @confirm_buttons[0].change_text(:next_level)
+          @confirm_buttons[1].change_text(:view_replay)
         when :try_again
           Game.register_attempt
           start
@@ -388,6 +440,8 @@ class Level
           Game.quit
         end
       end
+    elsif @replay
+      @replay_buttons.each(&:update)
     else
       @buttons.each(&:update)
     end
@@ -395,20 +449,29 @@ class Level
 
     prev_count = @set_count
 
-    i = (@man.x - @margin_x) / TILE_SIZE
-    j = (@man.y - @margin_y) / TILE_SIZE
-    if KB.key_pressed?(Gosu::KB_UP) || KB.key_held?(Gosu::KB_UP)
-      player_move(i, j, 0, -1)
-      @man.set_dir(0)
-    elsif KB.key_pressed?(Gosu::KB_RIGHT) || KB.key_held?(Gosu::KB_RIGHT)
-      player_move(i, j, 1, 0)
-      @man.set_dir(1)
-    elsif KB.key_pressed?(Gosu::KB_DOWN) || KB.key_held?(Gosu::KB_DOWN)
-      player_move(i, j, 0, 1)
-      @man.set_dir(2)
-    elsif KB.key_pressed?(Gosu::KB_LEFT) || KB.key_held?(Gosu::KB_LEFT)
-      player_move(i, j, -1, 0)
-      @man.set_dir(3)
+    if @replay
+      @replay_timer += 1
+      if @replay_timer >= @replay_interval
+        self.redo
+        @replay_step += 1
+        @replay_timer = 0
+      end
+    else
+      i = (@man.x - @margin_x) / TILE_SIZE
+      j = (@man.y - @margin_y) / TILE_SIZE
+      if KB.key_pressed?(Gosu::KB_UP) || KB.key_held?(Gosu::KB_UP)
+        player_move(i, j, 0, -1)
+        @man.set_dir(0)
+      elsif KB.key_pressed?(Gosu::KB_RIGHT) || KB.key_held?(Gosu::KB_RIGHT)
+        player_move(i, j, 1, 0)
+        @man.set_dir(1)
+      elsif KB.key_pressed?(Gosu::KB_DOWN) || KB.key_held?(Gosu::KB_DOWN)
+        player_move(i, j, 0, 1)
+        @man.set_dir(2)
+      elsif KB.key_pressed?(Gosu::KB_LEFT) || KB.key_held?(Gosu::KB_LEFT)
+        player_move(i, j, -1, 0)
+        @man.set_dir(3)
+      end
     end
 
     @objects.flatten.each do |obj|
@@ -496,7 +559,17 @@ class Level
     @key_imgs[:g].draw(10, 110, 0, 0.5, 0.5)
     @text_helper.write_line(@key_count[:g], 36, 110, :left, 0x008000, 255, :shadow)
 
-    @buttons.each(&:draw)
+    if @replay
+      @replay_buttons.each(&:draw)
+      text = if @replay_interval == 7
+               :fast
+             else
+               @replay_interval == 15 ? :normal : :slow
+             end
+      @text_helper.write_line(Game.text(text), 740, 65, :center)
+    else
+      @buttons.each(&:draw)
+    end
 
     if @confirmation
       G.window.draw_quad(0, 0, 0x80000000,
@@ -504,8 +577,12 @@ class Level
                          0, SCREEN_HEIGHT, 0x80000000,
                          SCREEN_WIDTH, SCREEN_HEIGHT, 0x80000000, 100)
       @panel.draw((SCREEN_WIDTH - @panel.width) / 2, (SCREEN_HEIGHT - @panel.height) / 2, 100)
-      @text_helper_big.write_line(Game.text(@confirmation), 400, 210, :center, 0, 255, nil, 0, 0, 0, 100)
-      @text_helper.write_line(Game.text(:are_you_sure), 400, 275, :center, 0, 255, nil, 0, 0, 0, 100)
+      if @confirmation == :next_level
+        @text_helper_big.write_line(Game.text(:won), 400, 240, :center, 0, 255, nil, 0, 0, 0, 100)
+      else
+        @text_helper_big.write_line(Game.text(@confirmation), 400, 210, :center, 0, 255, nil, 0, 0, 0, 100)
+        @text_helper.write_line(Game.text(:are_you_sure), 400, 275, :center, 0, 255, nil, 0, 0, 0, 100)
+      end
       @confirm_buttons.each { |b| b.draw(255, 100) }
     elsif @effect
       @effect.draw

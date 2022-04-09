@@ -29,3 +29,9 @@ won				¡Nivel completo!
 try_again		¡Inténtalo de nuevo!
 congratulations	¡Felicidades, juego completo!
 end				<FIN>
+next_level		Próximo
+view_replay		Repetir
+finish			Terminar
+slow			Despacio
+normal			Normal
+fast			Rápido
