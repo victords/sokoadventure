@@ -1,13 +1,12 @@
 require 'minigl'
 require 'rbconfig'
 require 'fileutils'
+require_relative 'constants'
 require_relative 'menu'
 require_relative 'level'
 require_relative 'presentation'
 
 class Game
-  LEVEL_COUNT = 50
-
   class << self
     include MiniGL
 
@@ -191,7 +190,7 @@ class Game
       else
         @current_score[:end_level] = LEVEL_COUNT + 1
         update_scores
-        @controller.congratulate
+        quit
       end
     end
 

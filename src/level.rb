@@ -477,14 +477,20 @@ class Level
       if @effect_timer == EFFECT_DURATION
         case @effect.type
         when :won
-          @confirmation = :next_level
-          @confirm_buttons[0].change_text(:next_level)
-          @confirm_buttons[1].change_text(:view_replay)
+          if @number < LEVEL_COUNT || @replay
+            @confirmation = :next_level
+            @confirm_buttons[0].change_text(:next_level)
+            @confirm_buttons[1].change_text(:view_replay)
+          else
+            congratulate
+          end
         when :try_again
           Game.register_attempt
           start
         when :congratulations
-          Game.quit
+          @confirmation = :next_level
+          @confirm_buttons[0].change_text(:next_level)
+          @confirm_buttons[1].change_text(:view_replay)
         end
       end
     elsif @replay

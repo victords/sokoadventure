@@ -1,4 +1,5 @@
 require 'minigl'
+require_relative 'constants'
 
 include MiniGL
 
@@ -159,7 +160,7 @@ class Menu
       (0..4).each do |i|
         (0..2).each do |j|
           text = Game.scores[i] ? Game.scores[i][j].to_s : '-'
-          if j == 1 && Game.scores[i] && Game.scores[i][j] == Game::LEVEL_COUNT + 1
+          if j == 1 && Game.scores[i] && Game.scores[i][j] == LEVEL_COUNT + 1
             text = Game.text(:end)
           end
           Game.font.draw_text(text, 260 + j * 100, 275 + i * 40, 0, 1, 1, 0xff000000)
